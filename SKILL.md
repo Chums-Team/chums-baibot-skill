@@ -126,6 +126,16 @@ bash scripts/run.sh deploy --profile prod --dry-run    # show, confirm
 bash scripts/run.sh deploy --profile prod              # ends with health
 ```
 
+After the first deploy the bot has no LLM agent: the profile carries no
+provider key (`references/secrets.md`). Tell the user to create one from the
+chat as an administrator and point the catch-all handler at it; the exact
+commands and an OpenRouter example are in `references/agent-setup.md`. For
+the first commands use an unencrypted room with the bot: in an encrypted one
+the client must first share its keys with the bot's device, otherwise the bot
+logs `Failed to decrypt a room event` and stays silent. Commands are also
+silent for users outside `access.admin_patterns` (`commands_admin_only` is on
+in the template).
+
 Change the configuration: edit `config.yml` in the profile, then
 `apply --dry-run`, confirm, `apply`. Only the bot restarts.
 
@@ -156,4 +166,5 @@ the images and recreates only what changed.
 - `references/secrets.md` secret classes, variables, rules, Claude Code deny rule.
 - `references/health-checklist.md` the five levels and what each status means.
 - `references/runbook-digest.md` what the logs must show, start order, smoke test, ledger.
+- `references/agent-setup.md` creating the LLM agent from the chat after deploy, OpenRouter example.
 - `references/templates/` the files `profile init` starts from.

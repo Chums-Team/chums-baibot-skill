@@ -155,10 +155,13 @@ profile_check_or_die() {
 }
 
 main() {
+  # `profile` has its own options (--target, --port, ...); hand them over untouched.
+  if [ "${1:-}" = profile ]; then
+    shift
+    exec bash "$SCRIPT_DIR/profile.sh" "$@"
+  fi
   parse_args "$@"
   case "$OP" in
-    profile)
-      exec bash "$SCRIPT_DIR/profile.sh" "${OP_ARGS[@]+"${OP_ARGS[@]}"}" ;;
     preflight|list)
       resolve
       remote "$OP" "${OP_ARGS[@]+"${OP_ARGS[@]}"}" ;;
