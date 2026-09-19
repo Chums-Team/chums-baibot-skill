@@ -1,0 +1,150 @@
+# config.yml of a chums-baibot instance. Derived from baibot's
+# etc/app/config.yml.dist for the deployment with billing and x402 top-ups.
+#
+# No secrets in this file: the login credential, the recovery passphrase, the
+# encryption keys and the x402 shared secret come from bot.env as BAIBOT_*
+# variables (every BAIBOT_* variable overrides the key of the same path here).
+# `profile check` refuses a profile whose config.yml carries one of them.
+#
+# Replace every double-underscore placeholder before deploying. Reference:
+# https://github.com/Chums-Team/baibot/blob/chums/docs/configuration/README.md
+
+homeserver:
+  # The canonical homeserver domain name, e.g. chums.chat
+  server_name: __HOMESERVER_SERVER_NAME__
+  # The client-server API base URL, e.g. https://chums.chat
+  url: __HOMESERVER_URL__
+
+user:
+  # Local part of the bot's Matrix id (@<localpart>:<server_name>).
+  mxid_localpart: __MXID_LOCALPART__
+
+  # Authentication comes from bot.env, exactly one of:
+  #   BAIBOT_USER_TRON_PRIVATE_KEY or BAIBOT_USER_TRON_SEED_PHRASE (the Chums homeserver),
+  #   BAIBOT_USER_PASSWORD (traditional homeservers),
+  #   BAIBOT_USER_ACCESS_TOKEN (+ BAIBOT_USER_DEVICE_ID).
+  # See docs/configuration/authentication.md. Keep the keys below unset.
+  # password: null
+  # access_token: null
+  # device_id: null
+  # tron:
+  #   private_key: null
+  #   seed_phrase: null
+  #   # Origin the homeserver allows for this bot; defaults to https://baibot.tron.mx.
+  #   origin: null
+
+  # The name the bot uses as a display name and when it refers to itself.
+  name: __BOT_NAME__
+
+  # An optional path to an image file to be used as a custom avatar image.
+  # - null or empty string: use the default avatar
+  # - "keep": don't touch the avatar, keep whatever is already set
+  # - any other value: path to a custom avatar image file
+  avatar: null
+
+  encryption:
+    # Passphrase for backing up and recovering the bot's encryption keys:
+    # BAIBOT_USER_ENCRYPTION_RECOVERY_PASSPHRASE in bot.env. Without one, losing
+    # data/ means losing access to old messages in encrypted rooms.
+    recovery_passphrase: null
+
+    # Set to true only for the procedure of changing the passphrase
+    # (see etc/app/config.yml.dist in baibot), then back to false.
+    recovery_reset_allowed: false
+
+# Command prefix. Leave empty to use the default (!bai).
+command_prefix: "!bai"
+
+room:
+  # Whether the bot should send an introduction message after joining a room.
+  post_join_self_introduction_enabled: true
+
+  # Optional. A fixed introduction (Markdown) per locale that replaces the built-in one.
+  # Sent in the language of the user who invited the bot; a text for
+  # `i18n.fallback_locale` is required. See docs/configuration/i18n.md.
+  # post_join_self_introduction_text:
+  #   en: "Hi! I am an assistant bot. Ask me anything."
+  #   ru: "Привет! Я бот-ассистент. Спрашивай о чём угодно."
+
+i18n:
+  # Language of the replies to users whose client has not declared one.
+  # One of: de, en, es, fr, id, pt, ru, sr. See docs/configuration/i18n.md.
+  fallback_locale: en
+
+access:
+  # Space-separated list of MXID patterns which specify who is an admin.
+  admin_patterns:
+    - "__ADMIN_MXID__"
+
+  # Optional. When true, the bot's commands sent by users who are not
+  # administrators are ignored without a reply, except the commands listed in
+  # `commands_admin_exempt`. Conversation is not affected. See docs/access.md.
+  commands_admin_only: true
+  commands_admin_exempt: [balance, topup, image]
+
+persistence:
+  # Set by docker-compose.yml through BAIBOT_PERSISTENCE_DATA_DIR_PATH.
+  data_dir_path: null
+
+  # Both keys come from bot.env (BAIBOT_PERSISTENCE_SESSION_ENCRYPTION_KEY,
+  # BAIBOT_PERSISTENCE_CONFIG_ENCRYPTION_KEY); `profile init` generates them.
+  # Changing the session key requires throwing away data/; changing the config
+  # key loses the configuration stored in account data.
+  session_encryption_key: null
+  config_encryption_key: null
+
+agents:
+  # Statically defined agents would need their provider API key here, and this
+  # file must stay free of secrets. Leave the list empty and create the agents
+  # from the chat as an administrator instead (docs/agents.md), e.g.
+  #   !bai agent create-global openrouter my-agent
+  # then point the handler at it:
+  #   !bai config global set-handler catch-all global/my-agent
+  static_definitions: []
+
+# Initial global configuration. This only affects the first run of the bot.
+# Configuration is later managed at runtime.
+initial_global_config:
+  handler:
+    catch_all: null
+    text_generation: null
+    text_to_speech: null
+    speech_to_text: null
+    image_generation: null
+
+  # Space-separated list of MXID patterns which specify who can use the bot.
+  user_patterns:
+    - "@*:__HOMESERVER_SERVER_NAME__"
+
+# Billing of LLM calls, backed by an append-only ledger (SQLite) in data/.
+# Every key but admin_mxids is optional; the values are the defaults.
+# See docs/configuration/billing.md.
+billing:
+  # Amount (USD) held off the room balance while a single LLM call is in flight.
+  reserve_amount_usd: 0.03
+  # Multiplier applied to the provider's cost (1.0 = at cost, 2.0 = double).
+  markup_pct: 2.0
+  # Bot-wide spending caps per UTC calendar day and month.
+  daily_cap_usd: 50.0
+  monthly_cap_usd: 1000.0
+  # Bounds for a single top-up request from a user.
+  min_topup_usd: 0.10
+  max_topup_usd: 1.0
+  # Full Matrix user ids allowed to run billing administration commands.
+  admin_mxids:
+    - "__ADMIN_MXID__"
+
+# Top-ups through the x402 payment sidecar, in the compose layout of baibot:
+# the sidecar is reached by its service name on the instance's Docker network
+# and reaches the bot on the same network, so the bot binds on all interfaces of
+# the container (the endpoint is signed with the shared secret and is not
+# published on the host). The secret is BAIBOT_X402_INTERNAL_SECRET in bot.env.
+# See docs/configuration/x402.md.
+x402:
+  sidecar_url: http://x402-sidecar:8402
+  internal_bind: 0.0.0.0
+  internal_port: 9000
+  allow_non_loopback_bind: true
+
+# Logging: warn for external crates, info for the bot; billing and x402 verbose.
+logging: warn,mxlink=info,baibot=info,baibot::billing=debug,baibot::x402=debug

@@ -1,0 +1,159 @@
+---
+name: chums-baibot
+version: 0.1.0
+description: >
+  Deploy and operate Chums baibot instances: the Matrix LLM bot with billing
+  and x402 top-ups (bot container + payment sidecar) on a local or
+  ssh-reachable Docker host. Use when the user asks to install, deploy,
+  configure, update, restart, back up, inspect, health-check, read the logs
+  of or remove a matrix bot, tron bot, chums bot or baibot.
+metadata:
+  author: Chums Team
+  homepage: https://github.com/Chums-Team/chums-baibot-skill
+  triggers: >
+    matrix bot, tron bot, chums bot, chums baibot, tron baibot, matrix baibot,
+    baibot, x402 sidecar, deploy matrix bot, deploy tron bot, deploy chums bot,
+    deploy baibot, install matrix bot, install tron bot, install chums bot,
+    install baibot, update matrix bot, update tron bot, update chums bot,
+    update baibot, health matrix bot, health tron bot, health chums bot,
+    health baibot, bot health check, bot logs, restart the bot, back up the bot,
+    second bot instance, rotate the x402 secret
+---
+
+# chums-baibot
+
+Manage instances of [Chums baibot](https://github.com/Chums-Team/baibot)
+(branch `chums`): the bot container next to its x402 payment sidecar, on one
+Docker host, several instances side by side. Everything goes through
+`scripts/run.sh`; the host needs only bash, docker with the compose plugin,
+curl, git and openssl, and receives the scripts over stdin, so nothing is
+installed there.
+
+The source of truth for an instance is a **profile** on the operator's machine
+(`~/.config/chums-baibot/<name>/`): `instance.env` (names, port, git ref,
+target), `bot.env` and `sidecar.env` (secrets), `config.yml` (bot
+configuration, no secrets). The host is derived from the profile: `deploy`
+creates an instance from it, `apply` pushes changes to it. There is no separate
+"configure" step. Details: `references/profile.md`, `references/instance-layout.md`.
+
+## Hard rules
+
+1. **Never read a secret file.** Not `bot.env`, not `sidecar.env`, not
+   `<instance>/.env`, not `<instance>/x402-sidecar/.env`: not with the Read
+   tool, not with `cat`, `head`, `grep`, `sed`, `less`, not "just the first
+   line", not over ssh. The only knowledge about a secret you may have is what
+   the scripts print: its **name**, its **state** (set / empty / commented /
+   absent) and a **format verdict**. Ask the user to fill secrets in by hand and
+   tell them which names are still unset. `references/secrets.md` lists the
+   variables and the deny rule for Claude Code that backs this up.
+2. **Never put a secret on a command line** (visible in `ps`) and never run
+   `docker compose config` without `--no-interpolate`, `env`, `printenv`,
+   `docker inspect` of a container's `Config.Env`, or `set -x` on the host.
+3. **Only `scripts/run.sh` touches the host.** No ad-hoc ssh commands that
+   change state. Read-only ad-hoc commands (`docker ps`, `docker logs`) are
+   fine when the scripts do not cover the question.
+4. **Act only after the user confirmed the plan.** Every changing operation has
+   `--dry-run`; show its output and wait for a "yes" before running without it.
+5. `config.yml` in the profile is not a secret: you may read and edit it. Keep
+   secrets out of it (`profile check` refuses them).
+
+## Workflow: Decide, Analyze, Plan, Act, Verify
+
+1. **Decide.** Which operation (table below), which target (`local` or
+   `user@host`), which profile or instance name. Ask for what is not given.
+   The target defaults to `TARGET` of the profile's `instance.env`.
+2. **Analyze** (read-only). For profile operations: `run.sh profile check
+   NAME`. Then `run.sh preflight --target T`, and `run.sh list` or
+   `run.sh inspect --profile NAME` (with `--profile` it also reports drift
+   between the profile and the host by file hash). Read the output, not the
+   files.
+3. **Plan.** Run the operation with `--dry-run`, show the plan to the user and
+   wait for confirmation. `deploy --dry-run` shows what would be cloned,
+   created, replaced and started; `apply --dry-run` which files differ and
+   which container would restart; `update --dry-run` the commit range and the
+   top of the changelog.
+4. **Act.** The same command without `--dry-run`. Do not add steps that the
+   plan did not show.
+5. **Verify.** `run.sh health --profile NAME` (deploy, apply, update and
+   rotate-secret run it by themselves). Report the table as is; `overall: ok`
+   means the instance works. On `fail` see `references/health-checklist.md`
+   and the runbook digest before proposing a fix.
+
+Report to the user with the scripts' output summarized, naming files by path
+and variables by name only.
+
+## Operations
+
+All commands are `bash scripts/run.sh <op> ...` from the skill directory.
+Common options: `--profile NAME`, `--instance NAME` (defaults to the profile
+name), `--target local|user@host`, `--root DIR` (instances root on the host,
+default `~/chums-baibot` of the ssh user), `--dry-run`.
+
+| Operation | Changes the host | What it does |
+|---|---|---|
+| `profile init NAME --target T [--port N] [--ref REF]` | no (writes the profile) | Creates the profile from the templates, writes UID/GID of the target, generates the internal secrets, prints the names of the user secrets still unset. |
+| `profile check NAME` | no | Permissions, completeness, formats, no secrets in `config.yml`, no placeholders left. Names and states only. |
+| `profile list` / `profile path NAME` | no | Profiles on this machine. |
+| `preflight` | no | Tools, docker daemon and compose, ghcr.io and GitHub reachability, instances root, non-interactive ssh. |
+| `list` | no | Instances on the host with ref and container states. |
+| `inspect` | no | One instance: ref, images, containers, network, file modes and owners, variable states, keys new in the templates, drift versus the profile. |
+| `health [--quick]` | no | Five levels: containers, sidecar `/health`, bot log markers, connectivity, ledger. Exit 1 when levels 1-3 fail. |
+| `logs [--tail N] [--since X] [--payment-id ID] [--bot\|--sidecar]` | no | Tail of both logs; a payment id filters both. |
+| `deploy --profile NAME` | yes | `profile check`, clone at the ref, profile files, `data/` dirs, network, sidecar `up -d --build`, bot `pull` + `up -d`, then health. Idempotent: a second run changes nothing. |
+| `apply --profile NAME` | yes | Pushes the profile files that differ (by hash), restarts only the affected container(s), then health. This is "configure". |
+| `update [--ref REF]` | yes | Fetch, show commits and changelog, checkout, pull/rebuild images, `up -d` (containers with an unchanged image are not recreated), health. |
+| `start` / `stop` / `restart` | yes | The pair, sidecar first on start, bot first on stop. |
+| `backup [--stop]` | no (writes on the host) | `billing.db` and `sidecar.db` via SQLite backup, `data/`, both `.env`, `config.yml`, `instance.env` into `<root>/backups/<instance>-<timestamp>/`. |
+| `rotate-secret --profile NAME` | yes | New shared x402 secret into both profile files (never printed), apply, both containers recreated, health. Warn about in-flight payments first. |
+| `remove` | yes | Containers and network down; the instance directory is kept and its path printed. |
+
+A bot deployed by hand from the runbook, without a profile, is reachable with
+`--instance NAME --target T` for `inspect`, `health`, `logs` and the lifecycle
+operations as long as its directory holds an `instance.env`; `deploy` and
+`apply` need a profile.
+
+## Typical sessions
+
+New instance on a server:
+
+```bash
+bash scripts/run.sh profile init prod --target deploy@bots.example.org --port 8402
+# user fills the login credential, the facilitator key and the wallet in the profile
+# by hand; agent edits config.yml (homeserver, mxid, admins) in the profile
+bash scripts/run.sh profile check prod
+bash scripts/run.sh preflight --profile prod
+bash scripts/run.sh deploy --profile prod --dry-run    # show, confirm
+bash scripts/run.sh deploy --profile prod              # ends with health
+```
+
+Change the configuration: edit `config.yml` in the profile, then
+`apply --dry-run`, confirm, `apply`. Only the bot restarts.
+
+Second instance on the same host: a second profile with another name and
+another `--port`; everything else is derived (network, container names).
+
+Upgrade: `update --dry-run` shows the commits; `update` moves the checkout and
+the images and recreates only what changed.
+
+## Reading the results
+
+- `profile check`: `FAIL` lines block deploy/apply. "user secret, fill it in"
+  means the user must edit the profile file; do not offer to do it.
+- `health`: levels 1-3 decide `overall`. A `warn` on the sidecar right after a
+  start is normal for a few seconds (the facilitator probe has not run).
+- `inspect` drift `DIFFERS from profile`: the profile is primary; propose
+  `apply`, or, if the host was edited on purpose, ask the user to update the
+  profile by hand.
+- Smoke test through Matrix (invite the bot, pay, ask): not automated. Walk
+  the user through the table in `references/runbook-digest.md`.
+
+## Files
+
+- `scripts/run.sh` entry point; `scripts/lib.sh` shared functions; one script
+  per operation (their headers document the arguments).
+- `references/profile.md` profile layout and lifecycle, drift.
+- `references/instance-layout.md` host layout, `instance.env`, compose variables.
+- `references/secrets.md` secret classes, variables, rules, Claude Code deny rule.
+- `references/health-checklist.md` the five levels and what each status means.
+- `references/runbook-digest.md` what the logs must show, start order, smoke test, ledger.
+- `references/templates/` the files `profile init` starts from.

@@ -1,0 +1,4 @@
+# shellcheck configuration of the chums-baibot scripts
+# SC1091: lib.sh is sourced by path at run time
+# SC2029: the ssh command lines are meant to expand on the client side
+disable=SC1091,SC2029

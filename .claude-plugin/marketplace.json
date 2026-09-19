@@ -1,0 +1,21 @@
+{
+  "name": "chums-baibot-skill",
+  "owner": {
+    "name": "Chums Team",
+    "url": "https://github.com/Chums-Team"
+  },
+  "metadata": {
+    "description": "Single-plugin marketplace of the chums-baibot skill: install and manage Chums baibot instances.",
+    "version": "0.1.0"
+  },
+  "plugins": [
+    {
+      "name": "chums-baibot",
+      "source": "./",
+      "description": "Deploy and operate Chums baibot instances: the Matrix LLM bot with billing and x402 top-ups (bot container + payment sidecar) on a local or ssh-reachable Docker host. Use when the user asks to install, deploy, configure, update, restart, back up, inspect, health-check, read the logs of or remove a matrix bot, tron bot, chums bot or baibot.",
+      "version": "0.1.0",
+      "category": "ops",
+      "license": "MIT"
+    }
+  ]
+}
