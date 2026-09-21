@@ -58,7 +58,7 @@ apply_main() {
     # `up -d` is a no-op when only the bind-mounted config.yml changed
     run compose_bot restart bot
   fi
-  log "apply $CB_INSTANCE: done; run health next"
+  log "apply $CB_INSTANCE: done"
 }
 
 apply_main "$@"

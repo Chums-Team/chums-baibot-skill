@@ -109,7 +109,7 @@ deploy_main() {
   if [ "$restart_bot" = 1 ] && [ "$(container_state "$BOT_CONTAINER_NAME")" = running ]; then
     run compose_bot restart bot
   fi
-  log "deploy $CB_INSTANCE: done; run health next"
+  log "deploy $CB_INSTANCE: done"
 }
 
 deploy_main "$@"

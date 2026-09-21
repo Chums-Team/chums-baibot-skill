@@ -1,6 +1,6 @@
 ---
 name: chums-baibot
-version: 0.1.0
+version: 0.2.0
 description: >
   Deploy and operate Chums baibot instances: the Matrix LLM bot with billing
   and x402 top-ups (bot container + payment sidecar) on a local or
@@ -132,7 +132,8 @@ chat as an administrator and point the catch-all handler at it; the exact
 commands and an OpenRouter example are in `references/agent-setup.md`. For
 the first commands use an unencrypted room with the bot: in an encrypted one
 the client must first share its keys with the bot's device, otherwise the bot
-logs `Failed to decrypt a room event` and stays silent. Commands are also
+logs `Failed to decrypt a room event` and stays silent (health shows it as a
+warning on the bot level). Commands are also
 silent for users outside `access.admin_patterns` (`commands_admin_only` is on
 in the template).
 

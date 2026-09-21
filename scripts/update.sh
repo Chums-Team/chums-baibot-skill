@@ -82,7 +82,7 @@ update_main() {
   after_side=$(container_field "$SIDECAR_CONTAINER_NAME" '{{.Id}}')
   if [ "$before_bot" = "$after_bot" ]; then log "bot container unchanged"; else log "bot container recreated"; fi
   if [ "$before_side" = "$after_side" ]; then log "sidecar container unchanged"; else log "sidecar container recreated"; fi
-  log "update $CB_INSTANCE: done at $(git -C "$CB_DIR" rev-parse --short HEAD); run health next"
+  log "update $CB_INSTANCE: done at $(git -C "$CB_DIR" rev-parse --short HEAD)"
 }
 
 update_main "$@"

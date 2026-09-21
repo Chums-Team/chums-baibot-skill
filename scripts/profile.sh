@@ -231,11 +231,12 @@ cmd_check() {
   log "bot.env:"
   check_keys "$dir/bot.env" nonsecret "$BOT_NONSECRET_KEYS"
   check_keys "$dir/bot.env" internal "$BOT_INTERNAL_KEYS"
-  local pair key n=0 state
+  local pair key n=0 state tron=0
   for pair in $BOT_LOGIN_KEYS; do
     key=${pair%%:*}
     state=$(env_key_state "$dir/bot.env" "$key")
     [ "$state" = set ] && n=$((n + 1))
+    if [ "$state" = set ]; then case "$key" in BAIBOT_USER_TRON_*) tron=1 ;; esac; fi
     [ "$state" = empty ] && fail "$key is empty and uncommented"
     if [ "$state" = set ] && [ "$key" = BAIBOT_USER_TRON_PRIVATE_KEY ]; then
       [ "$(env_key_format "$dir/bot.env" "$key" hex64)" = ok ] || fail "$key set but not 64 hex characters"
@@ -248,9 +249,13 @@ cmd_check() {
   esac
   state=$(env_key_state "$dir/bot.env" BAIBOT_USER_ENCRYPTION_RECOVERY_PASSPHRASE)
   case "$state" in
-    set)   pass "BAIBOT_USER_ENCRYPTION_RECOVERY_PASSPHRASE set" ;;
+    set)   pass "BAIBOT_USER_ENCRYPTION_RECOVERY_PASSPHRASE set (takes precedence over the wallet-derived passphrase)" ;;
     empty) fail "BAIBOT_USER_ENCRYPTION_RECOVERY_PASSPHRASE is empty and uncommented" ;;
-    *)     note "BAIBOT_USER_ENCRYPTION_RECOVERY_PASSPHRASE unset: no recovery of encrypted-room history if data/ is lost" ;;
+    *)     if [ "$tron" = 1 ]; then
+             pass "BAIBOT_USER_ENCRYPTION_RECOVERY_PASSPHRASE unset: the bot derives it from the TRON wallet key (bots built before 2026-09-21 keep the keys on the device only)"
+           else
+             note "BAIBOT_USER_ENCRYPTION_RECOVERY_PASSPHRASE unset: no recovery of encrypted-room history if data/ is lost"
+           fi ;;
   esac
 
   log "sidecar.env:"

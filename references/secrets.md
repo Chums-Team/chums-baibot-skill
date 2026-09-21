@@ -5,7 +5,7 @@
 | Class | Variables | Who sets them |
 |---|---|---|
 | Internal, generated | bot: `BAIBOT_PERSISTENCE_SESSION_ENCRYPTION_KEY`, `BAIBOT_PERSISTENCE_CONFIG_ENCRYPTION_KEY`, `BAIBOT_X402_INTERNAL_SECRET`; sidecar: `X402_INTERNAL_SECRET` (same value as the bot's), `X402_FACILITATOR_WEBHOOK_SECRET` | `profile init`, into the profile, through a temp file; `rotate-secret` for the shared one |
-| User | bot: exactly one of `BAIBOT_USER_TRON_PRIVATE_KEY`, `BAIBOT_USER_TRON_SEED_PHRASE`, `BAIBOT_USER_PASSWORD`, `BAIBOT_USER_ACCESS_TOKEN`; `BAIBOT_USER_ENCRYPTION_RECOVERY_PASSPHRASE` (recommended); sidecar: `X402_FACILITATOR_API_KEY`, `X402_AGENT_WALLET` | the user, by hand, in the profile |
+| User | bot: exactly one of `BAIBOT_USER_TRON_PRIVATE_KEY`, `BAIBOT_USER_TRON_SEED_PHRASE`, `BAIBOT_USER_PASSWORD`, `BAIBOT_USER_ACCESS_TOKEN`; `BAIBOT_USER_ENCRYPTION_RECOVERY_PASSPHRASE` (with a password or token login; with a TRON key the bot derives it from the wallet, and a set value takes precedence); sidecar: `X402_FACILITATOR_API_KEY`, `X402_AGENT_WALLET` | the user, by hand, in the profile |
 | Non-secret in the same files | `UID`, `GID` (both), the sidecar's network and facilitator settings (`X402_NETWORK`, `X402_FACILITATOR_URL`, ...) | `profile init` writes UID/GID; the user edits the rest by hand |
 
 LLM provider API keys are not part of the profile: `config.yml` must stay

@@ -30,6 +30,11 @@ Sidecar first, then the bot. Expected in the bot log at start-up:
   `Logged in through the TRON wallet` on the first start, `Found an existing
   session` on later starts (the saved session in `data/` is reused); with a
   password or token: `Logged in as`,
+- `Recovery passphrase taken from the TRON wallet key` (or `from the
+  configuration`), then `Recovery: secrets imported from secret storage` on a
+  normal start or `Recovery: secret storage created` on the account's first
+  start with recovery; `No recovery passphrase` means the keys stay on the
+  device only (no passphrase and no wallet, or a bot older than 2026-09-21),
 - `Syncing..` once the Matrix sync runs.
 
 A configuration error stops the bot before login, with the reason.

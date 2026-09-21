@@ -67,7 +67,7 @@ health_main() {
   fi
 
   # 3. bot log since the last start
-  local started logs x402_on=0 problems="" good=""
+  local started logs x402_on=0 problems="" good="" warnings="" utd
   if [ "$(container_state "$BOT_CONTAINER_NAME")" = running ]; then
     started=$(container_field "$BOT_CONTAINER_NAME" '{{.State.StartedAt}}')
     logs=$(docker logs --since "$started" "$BOT_CONTAINER_NAME" 2>&1 || true)
@@ -78,12 +78,19 @@ health_main() {
     if [ "$x402_on" = 1 ]; then
       if printf '%s' "$logs" | grep -q -F 'x402 top-ups enabled'; then good="${good:+$good,}x402"; else problems="${problems:+$problems; }x402 configured but 'x402 top-ups enabled' not logged"; fi
     fi
+    if printf '%s' "$logs" | grep -q -E 'Recovery: '; then good="${good:+$good,}recovery"; fi
+    printf '%s' "$logs" | grep -q -F 'Recovery failed' && problems="${problems:+$problems; }$(printf '%s' "$logs" | grep -F 'Recovery failed' | tail -n 1 | sed -E 's/.*(Recovery failed)/\1/' | cut -c1-200)"
     printf '%s' "$logs" | grep -q -E 'panicked at|thread .* panicked' && problems="${problems:+$problems; }panic in log"
     printf '%s' "$logs" | grep -q -F 'x402 webhook rejected' && problems="${problems:+$problems; }x402 webhook rejected (shared secret mismatch?)"
+    utd=$(printf '%s' "$logs" | grep -c -F 'Failed to decrypt a room event' || true)
+    [ "${utd:-0}" -gt 0 ] && warnings="${warnings:+$warnings; }$utd undecryptable event(s): a client did not share its room keys with the bot's device (see health-checklist.md)"
+    printf '%s' "$logs" | grep -q -F 'no backup key was found' && warnings="${warnings:+$warnings; }SDK has no key for the account's room key backup (an older bot without recovery, or no passphrase)"
     if [ -n "$problems" ]; then
       row fail bot "$problems" core
     elif [ -z "$good" ]; then
       row warn bot "no login/sync marker since start yet (starting? logging level?)" core
+    elif [ -n "$warnings" ]; then
+      row warn bot "markers: $good; $warnings" core
     else
       row ok bot "markers: $good" core
     fi

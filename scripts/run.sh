@@ -80,6 +80,12 @@ resolve() {
   fi
 }
 
+# health_after OP: the health check that ends every changing operation.
+health_after() {
+  log "$1 done; health of $INSTANCE:"
+  remote health
+}
+
 # remote OP ARGS...: stream lib.sh + OP.sh into bash on the target.
 remote() {
   local op=$1; shift
@@ -175,7 +181,7 @@ main() {
       resolve
       [ -n "$INSTANCE" ] || die "$OP needs --instance NAME or --profile NAME"
       remote "$OP" "${OP_ARGS[@]+"${OP_ARGS[@]}"}"
-      if [ "$OP" = update ] && [ "$DRY" = 0 ]; then remote health; fi ;;
+      if [ "$OP" = update ] && [ "$DRY" = 0 ]; then health_after update; fi ;;
     start|stop|restart)
       resolve
       [ -n "$INSTANCE" ] || die "$OP needs --instance NAME or --profile NAME"
@@ -188,7 +194,7 @@ main() {
       read -r -a extra <<< "$(expect_args) $(set_args)"
       if [ "$DRY" = 0 ]; then stage_profile; fi
       remote "$OP" "${extra[@]+"${extra[@]}"}" "${OP_ARGS[@]+"${OP_ARGS[@]}"}"
-      if [ "$DRY" = 0 ]; then remote health; fi ;;
+      if [ "$DRY" = 0 ]; then health_after "$OP"; fi ;;
     rotate-secret)
       need_profile
       resolve
@@ -203,7 +209,7 @@ main() {
       read -r -a extra <<< "$(expect_args)"
       stage_profile
       remote apply "${extra[@]+"${extra[@]}"}"
-      remote health ;;
+      health_after rotate-secret ;;
     *) die "unknown operation: $OP (see --help)" ;;
   esac
 }
