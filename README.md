@@ -85,6 +85,17 @@ checkout while developing:
 /plugin install chums-baibot@chums-baibot-skill
 ```
 
+**Claude Desktop** (the app, where `/plugin` has no panel): click **+** next
+to the prompt box, choose **Plugins**, then **Add plugin**, and pick
+`chums-baibot` in the plugin browser. The browser lists every marketplace you
+have configured, so add this repository or the catalog first (from a terminal
+session on the same machine, with the commands above, or from the browser's own
+marketplace list). Choose the scope you want: user, project or local. The app
+installs plugins separately from the terminal CLI, so a skill installed in one
+does not have to appear in the other. Cloud sessions load neither; they see
+only plugins enabled for the claude.ai account. The plugin browser is not
+available in cloud or WSL sessions.
+
 **Codex:** `codex plugin marketplace add Chums-Team/chums-skills`, then pick
 the skill under `/plugins`.
 

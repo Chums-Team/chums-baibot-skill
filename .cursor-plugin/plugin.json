@@ -1,7 +1,7 @@
 {
   "name": "chums-baibot",
   "displayName": "chums-baibot",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Deploy and operate Chums baibot instances: the Matrix LLM bot with billing and x402 top-ups (bot container + payment sidecar) on a local or ssh-reachable Docker host. Use when the user asks to install, deploy, configure, update, restart, back up, inspect, health-check, read the logs of or remove a matrix bot, tron bot, chums bot or baibot.",
   "author": {
     "name": "Chums Team",

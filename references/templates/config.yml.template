@@ -10,9 +10,9 @@
 # https://github.com/Chums-Team/baibot/blob/chums/docs/configuration/README.md
 
 homeserver:
-  # The canonical homeserver domain name, e.g. chums.chat
+  # The canonical homeserver domain name, e.g. tron.mx
   server_name: __HOMESERVER_SERVER_NAME__
-  # The client-server API base URL, e.g. https://chums.chat
+  # The client-server API base URL, usually https://<server_name>
   url: __HOMESERVER_URL__
 
 user:
@@ -36,11 +36,13 @@ user:
   # The name the bot uses as a display name and when it refers to itself.
   name: __BOT_NAME__
 
-  # An optional path to an image file to be used as a custom avatar image.
-  # - null or empty string: use the default avatar
-  # - "keep": don't touch the avatar, keep whatever is already set
-  # - any other value: path to a custom avatar image file
-  avatar: null
+  # What the bot does with its avatar on every start.
+  # - "keep": don't touch it, leave whatever the account has (the default here)
+  # - null or empty string: upload baibot's default picture
+  # - any other value: path to an image file inside the container; the compose
+  #   file mounts only config.yml and data/, so a custom picture needs a mount
+  #   of its own and the skill does not deploy one.
+  avatar: "keep"
 
   encryption:
     # Passphrase for backing up and recovering the bot's encryption keys:

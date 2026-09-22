@@ -30,12 +30,14 @@ Preconditions:
      model_id: deepseek/deepseek-v4-flash-0731
      prompt: "You are a brief, but helpful bot called {{ baibot_name }} powered by the {{ baibot_model_id }} model. The date/time of this conversation's start is: {{ baibot_conversation_start_time_utc }}."
      temperature: 1.0
-     max_response_tokens: 2048
-     max_context_tokens: 32768
+     max_response_tokens: 4096
+     max_context_tokens: 128000
    ```
 
+   These are the defaults baibot itself suggests for the provider.
    `model_id` is the identifier from OpenRouter's model list, verbatim; a
-   wrong id fails at the first call, not at creation. Keep
+   wrong id fails at the first call, not at creation, so check the id against
+   the list before sending the YAML. Keep
    `max_response_tokens` so that one reply costs less than
    `billing.reserve_amount_usd` (0.03 USD by default), or the reserve is not
    enough for the call. `max_context_tokens` follows the model's window.

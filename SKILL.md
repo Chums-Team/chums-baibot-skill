@@ -1,6 +1,6 @@
 ---
 name: chums-baibot
-version: 0.2.0
+version: 0.3.0
 description: >
   Deploy and operate Chums baibot instances: the Matrix LLM bot with billing
   and x402 top-ups (bot container + payment sidecar) on a local or
@@ -61,7 +61,9 @@ creates an instance from it, `apply` pushes changes to it. There is no separate
 
 1. **Decide.** Which operation (table below), which target (`local` or
    `user@host`), which profile or instance name. Ask for what is not given.
-   The target defaults to `TARGET` of the profile's `instance.env`.
+   The target defaults to `TARGET` of the profile's `instance.env`. For a
+   first deploy, ask the questions of "What to ask for a new instance" below,
+   in that wording.
 2. **Analyze** (read-only). For profile operations: `run.sh profile check
    NAME`. Then `run.sh preflight --target T`, and `run.sh list` or
    `run.sh inspect --profile NAME` (with `--profile` it also reports drift
@@ -112,6 +114,38 @@ A bot deployed by hand from the runbook, without a profile, is reachable with
 operations as long as its directory holds an `instance.env`; `deploy` and
 `apply` need a profile.
 
+## What to ask for a new instance
+
+Before `profile init` and the `config.yml` edit that follows it, ask for these
+and nothing else. Ask in the user's language, one short question per line, with
+the default in brackets; accept a bare "defaults are fine". Name the thing, not
+the YAML path: a user should never have to guess what `mxid_localpart` or
+`homeserver.url` means, and never see a `__PLACEHOLDER__` token. None of this
+is a secret, so it can be typed straight into the chat.
+
+| Ask it like this | Default | Fills |
+|---|---|---|
+| The bot's name, in latin letters without spaces. It names the instance directory, the containers and the network. | - | profile and instance name |
+| The homeserver domain. | `tron.mx` | `homeserver.server_name`; `homeserver.url` becomes `https://<domain>` |
+| The bot's login: the part before the colon in its address. It will be `@<login>:<domain>`. | - | `user.mxid_localpart` |
+| The bot's display name: what users see in the chat. | - | `user.name` |
+| The bot's administrator: the full address, for example `@admin:tron.mx`. | - | `access.admin_patterns`, `billing.admin_mxids` |
+| The language of the replies to users whose client did not ask for one. | `en` | `i18n.fallback_locale` |
+| The prefix of the bot's chat commands. | `!bai` | `command_prefix` |
+| The bot's avatar: keep whatever the account has now, or upload baibot's default picture. | keep | `user.avatar` (`"keep"` or `null`) |
+| The TRON network for payments. | `nile` (testnet) | `X402_NETWORK` in `sidecar.env`, the user edits it |
+| The host port of the sidecar. Ask only for a second instance on the same host. | `8402` | `--port` of `profile init` |
+
+Ask about `homeserver.url` separately only when the user says the domain
+delegates the client-server API elsewhere (`.well-known` points at another
+host). The billing limits of the template (markup, caps, top-up bounds) are
+sane defaults: state them in one line and change them only if asked.
+
+The bot's credential (the wallet key or the password), the facilitator key and
+the agent wallet are secrets: never ask for them in the chat. After
+`profile init`, name the variables that are still unset and let the user fill
+them in an editor.
+
 ## Typical sessions
 
 New instance on a server:
@@ -129,11 +163,11 @@ bash scripts/run.sh deploy --profile prod              # ends with health
 After the first deploy the bot has no LLM agent: the profile carries no
 provider key (`references/secrets.md`). Tell the user to create one from the
 chat as an administrator and point the catch-all handler at it; the exact
-commands and an OpenRouter example are in `references/agent-setup.md`. For
-the first commands use an unencrypted room with the bot: in an encrypted one
-the client must first share its keys with the bot's device, otherwise the bot
-logs `Failed to decrypt a room event` and stays silent (health shows it as a
-warning on the bot level). Commands are also
+commands and an OpenRouter example are in `references/agent-setup.md`.
+Encrypted rooms work from the first start as long as the bot imported its
+secrets from secret storage (health level 3 reports `Recovery:`); when that
+import failed, the bot logs `Failed to decrypt a room event` and stays silent,
+and an unencrypted room is the way to talk to it meanwhile. Commands are also
 silent for users outside `access.admin_patterns` (`commands_admin_only` is on
 in the template).
 
